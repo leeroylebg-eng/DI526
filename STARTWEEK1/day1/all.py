@@ -84,3 +84,17 @@ def main():
         print("It's really hot! Stay cool.")
 
 main()
+
+
+
+
+print ("hello world")
+print (5 +3)
+print (5 * 3)
+
+x= 5
+
+print (x *3)
+
+
+
