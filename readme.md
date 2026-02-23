@@ -1,2 +1,1 @@
-#developers institute notes
-salam
+print ("hello world")
