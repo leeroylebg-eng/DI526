@@ -22,3 +22,6 @@ with open("employee.json", "w") as f:
     json.dump(data, f, indent=4)
 
 print("JSON saved to employee.json")
+with open("employee.json", "r") as f:
+    verified = json.load(f)
+    print(f"Verified - birth_date: {verified['company']['employee']['birth_date']}")
