@@ -1,4 +1,4 @@
-from game import Game
+from WEEK2.day5.project2.game import Game
 
 def get_user_menu_choice():
     print("\n==========================")

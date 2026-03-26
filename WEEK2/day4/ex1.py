@@ -2,7 +2,7 @@ import random
 
 def get_words_from_file(file_path):
     with open(file_path, "r") as f:
-        content = f.read()
+        content = f.read() 
         words = content.split()
     return words
 

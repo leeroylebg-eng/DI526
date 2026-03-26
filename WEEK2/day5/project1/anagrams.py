@@ -1,4 +1,4 @@
-from anagram_checker import AnagramChecker
+from WEEK2.day5.project.anagram_checker import AnagramChecker
 
 def main():
     checker = AnagramChecker("sowpods.txt")
