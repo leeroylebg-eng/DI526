@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Recommender</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c0c0c;
+      --surface: #141414;
+      --border: #222;
+      --accent: #b8ff57;
+      --accent2: #ff3cac;
+      --text: #d4d4d4;
+      --muted: #555;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 80px 48px 64px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: 'MUSIC';
+      position: absolute;
+      top: -20px; right: -20px;
+      font-size: 200px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.02);
+      font-family: 'Space Mono', monospace;
+      pointer-events: none;
+      line-height: 1;
+    }
+    .header-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -2px;
+      color: #fff;
+      max-width: 700px;
+    }
+    header h1 span { color: var(--accent); }
+    header p {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 500px;
+      line-height: 1.6;
+    }
+    .tech-stack {
+      display: flex;
+      gap: 8px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+    .tech-stack span {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    nav a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 16px 24px;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    nav a:hover { color: var(--accent); background: rgba(184,255,87,0.04); }
+
+    /* ── LAYOUT ── */
+    main { max-width: 1280px; margin: 0 auto; }
+
+    section {
+      padding: 64px 48px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--accent);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -1px;
+      margin-bottom: 40px;
+    }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    .stat-box {
+      padding: 32px 24px;
+      border-right: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .stat-box:last-child { border-right: none; }
+    .stat-box:hover { background: rgba(255,255,255,0.02); }
+    .stat-box .num {
+      font-family: 'Space Mono', monospace;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .stat-box .lbl {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    /* ── CHARTS ── */
+    .charts-col { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .charts-row { display: grid; gap: 1px; background: var(--border); }
+    .charts-row.two { grid-template-columns: 1fr 1fr; }
+
+    .chart-block { background: var(--surface); }
+    .chart-block .meta {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .chart-block .meta h3 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #fff;
+    }
+    .chart-block .meta span {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+    .chart-block img { width: 100%; display: block; }
+
+    /* ── RECS ── */
+    .recs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .rec-block {
+      background: var(--surface);
+      padding: 28px 24px;
+      transition: background 0.15s;
+    }
+    .rec-block:hover { background: #181818; }
+    .rec-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .rec-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .rec-type {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .rec-genre {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      background: rgba(184,255,87,0.08);
+      border: 1px solid rgba(184,255,87,0.2);
+      padding: 3px 9px;
+      border-radius: 3px;
+    }
+    .rec-block ul { list-style: none; }
+    .rec-block ul li {
+      font-size: 0.82rem;
+      color: var(--muted);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rec-block ul li:last-child { border: none; }
+    .rec-block ul li::before {
+      content: '—';
+      color: var(--accent2);
+      font-weight: 700;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead { background: var(--surface); }
+    th {
+      padding: 14px 20px;
+      text-align: left;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 400;
+    }
+    td { padding: 13px 20px; border-top: 1px solid var(--border); color: var(--text); }
+    tr:hover td { background: rgba(255,255,255,0.015); }
+    .yes { color: var(--accent); font-family: 'Space Mono', monospace; font-size: 0.75rem; }
+    .no  { color: var(--muted);  font-family: 'Space Mono', monospace; font-size: 0.75rem; }
+
+    /* ── CHI2 ── */
+    .chi-row {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      gap: 40px;
+      align-items: center;
+      padding: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      margin-bottom: 40px;
+    }
+    @media (max-width: 700px) { .chi-row { grid-template-columns: 1fr 1fr; } }
+    .chi-val .num {
+      font-family: 'Space Mono', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .chi-val .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .chi-conclusion {
+      font-size: 0.9rem;
+      color: var(--accent);
+      line-height: 1.6;
+      border-left: 2px solid var(--accent);
+      padding-left: 20px;
+    }
+
+    /* ── CLUSTERS ── */
+    .clusters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .cluster-block {
+      background: var(--surface);
+      padding: 32px 28px;
+      transition: background 0.15s;
+    }
+    .cluster-block:hover { background: #181818; }
+    .cluster-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      letter-spacing: 2px;
+    }
+    .cluster-block h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .cluster-block p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .cluster-count {
+      display: inline-block;
+      margin-top: 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 40px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    footer p {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Hackathon · 2026</div>
+  <h1>Music<br><span>Recommender</span></h1>
+  <p>Système de recommandation musicale personnalisé basé sur l'analyse de profils d'utilisateurs et les préférences genres.</p>
+  <div class="tech-stack">
+    <span>Python</span>
+    <span>NumPy</span>
+    <span>Pandas</span>
+    <span>SciPy</span>
+    <span>Matplotlib</span>
+    <span>Seaborn</span>
+    <span>K-Means</span>
+    <span>OOP</span>
+  </div>
+</header>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#charts">Visualisations</a>
+  <a href="#recs">Recommandations</a>
+  <a href="#stats">Statistiques</a>
+  <a href="#clusters">Clusters</a>
+</nav>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <div class="section-label">01 — Vue d'ensemble</div>
+    <h2>50 profils générés.<br>8 genres analysés.</h2>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="num">50</div>
+        <div class="lbl">Utilisateurs générés</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">10</div>
+        <div class="lbl">DJ Fans</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">40</div>
+        <div class="lbl">Music Fans</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">25.7</div>
+        <div class="lbl">Âge moyen</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">15h</div>
+        <div class="lbl">Écoute / semaine</div>
+      </div>
+      <div class="stat-box">
+        <div class="num">4</div>
+        <div class="lbl">Clusters K-Means</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHARTS -->
+  <section id="charts">
+    <div class="section-label">02 — Visualisations</div>
+    <h2>Analyse graphique<br>des données.</h2>
+    <div class="charts-col">
+      <div class="chart-block">
+        <div class="meta">
+          <h3>Top genres par cluster</h3>
+          <span>chart_01</span>
+        </div>
+        <img src="outputs/chart1_genres_by_cluster.png" alt="Genres by cluster" />
+      </div>
+      <div class="charts-row two">
+        <div class="chart-block">
+          <div class="meta">
+            <h3>Heatmap écoutes jour × genre</h3>
+            <span>chart_02</span>
+          </div>
+          <img src="outputs/chart2_listening_heatmap.png" alt="Heatmap" />
+        </div>
+        <div class="chart-block">
+          <div class="meta">
+            <h3>Distribution des genres</h3>
+            <span>chart_03</span>
+          </div>
+          <img src="outputs/chart3_genre_distribution.png" alt="Distribution" />
+        </div>
+      </div>
+      <div class="chart-block">
+        <div class="meta">
+          <h3>Évolution des écoutes sur 7 jours</h3>
+          <span>chart_04</span>
+        </div>
+        <img src="outputs/chart4_weekly_listening.png" alt="Weekly" />
+      </div>
+      <div class="chart-block">
+        <div class="meta">
+          <h3>Similarité cosinus entre utilisateurs</h3>
+          <span>chart_05</span>
+        </div>
+        <img src="outputs/chart5_cosine_similarity.png" alt="Cosine" />
+      </div>
+    </div>
+  </section>
+
+  <!-- RECS -->
+  <section id="recs">
+    <div class="section-label">03 — Recommandations</div>
+    <h2>Résultats<br>personnalisés.</h2>
+    <div class="recs-grid">
+      <div class="rec-block">
+        <div class="rec-top">
+          <div>
+            <div class="rec-name">Alex</div>
+            <div class="rec-type">DJ Fan · 6 events</div>
+          </div>
+          <span class="rec-genre">techno</span>
+        </div>
+        <ul>
+          <li>Charlotte de Witte @ Awakenings</li>
+          <li>Amelie Lens @ Fabric</li>
+          <li>Dax J @ Berghain</li>
+          <li>Festival Awakenings — Amsterdam</li>
+          <li>Boiler Room Paris</li>
+        </ul>
+      </div>
+      <div class="rec-block">
+        <div class="rec-top">
+          <div>
+            <div class="rec-name">Jordan</div>
+            <div class="rec-type">Music Fan</div>
+          </div>
+          <span class="rec-genre">jazz</span>
+        </div>
+        <ul>
+          <li>Miles Davis – Kind of Blue</li>
+          <li>Coltrane – A Love Supreme</li>
+          <li>Brian Eno – Ambient 1</li>
+          <li>Floating Points – Promises</li>
+        </ul>
+      </div>
+      <div class="rec-block">
+        <div class="rec-top">
+          <div>
+            <div class="rec-name">Sam</div>
+            <div class="rec-type">Music Fan · actif le week-end</div>
+          </div>
+          <span class="rec-genre">techno</span>
+        </div>
+        <ul>
+          <li>Charlotte de Witte – KNTXT</li>
+          <li>Alignment Festival Set</li>
+          <li>Peggy Gou – Set 2023</li>
+          <li>Fisher – Losing It</li>
+        </ul>
+      </div>
+      <div class="rec-block">
+        <div class="rec-top">
+          <div>
+            <div class="rec-name">Morgan</div>
+            <div class="rec-type">DJ Fan</div>
+          </div>
+          <span class="rec-genre">house</span>
+        </div>
+        <ul>
+          <li>Fisher @ Coachella</li>
+          <li>Peggy Gou @ Boiler Room</li>
+          <li>DJ Koze @ Melt Festival</li>
+          <li>ADE Amsterdam</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="stats">
+    <div class="section-label">04 — Statistiques</div>
+    <h2>Tests d'hypothèses<br>& corrélations.</h2>
+
+    <div class="chi-row">
+      <div class="chi-val">
+        <div class="num">29.8</div>
+        <div class="lbl">χ² statistic</div>
+      </div>
+      <div class="chi-val">
+        <div class="num">5e⁻⁶</div>
+        <div class="lbl">p-value</div>
+      </div>
+      <div class="chi-conclusion">
+        Distribution NON uniforme — Techno et Pop dominent significativement la communauté. H₀ rejetée (α = 0.05).
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Paire</th>
+            <th>Pearson r</th>
+            <th>p-value</th>
+            <th>Sig.</th>
+            <th>Interprétation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Heures d'écoute ↔ Nombre d'intérêts</td>
+            <td>0.5097</td><td>&lt; 0.001</td>
+            <td class="yes">✓</td><td>Corrélation modérée positive</td>
+          </tr>
+          <tr>
+            <td>Ratio week-end ↔ Événements assistés</td>
+            <td>0.1836</td><td>0.20</td>
+            <td class="no">—</td><td>Corrélation négligeable</td>
+          </tr>
+          <tr>
+            <td>Âge ↔ Score techno</td>
+            <td>-0.0621</td><td>0.67</td>
+            <td class="no">—</td><td>Pas de relation significative</td>
+          </tr>
+          <tr>
+            <td>Heures d'écoute ↔ Score house</td>
+            <td>0.5091</td><td>&lt; 0.001</td>
+            <td class="yes">✓</td><td>Corrélation modérée positive</td>
+          </tr>
+          <tr>
+            <td>Âge ↔ Heures d'écoute</td>
+            <td>-0.2884</td><td>0.04</td>
+            <td class="yes">✓</td><td>Corrélation faible négative</td>
+          </tr>
+          <tr>
+            <td>Score techno ↔ Score house</td>
+            <td>0.7845</td><td>&lt; 0.001</td>
+            <td class="yes">✓</td><td>Corrélation forte positive</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CLUSTERS -->
+  <section id="clusters">
+    <div class="section-label">05 — Clustering</div>
+    <h2>4 groupes<br>identifiés.</h2>
+    <div class="clusters-grid">
+      <div class="cluster-block">
+        <div class="cluster-num">CLUSTER 00</div>
+        <h4>Underground / Techno</h4>
+        <p>Sets sombres, Berghain, festivals underground. Écoutes intenses le week-end.</p>
+        <span class="cluster-count">13 utilisateurs</span>
+      </div>
+      <div class="cluster-block">
+        <div class="cluster-num">CLUSTER 01</div>
+        <h4>Mainstream / Pop-Rap</h4>
+        <p>Playlists Spotify, concerts grand public, forte activité sur les réseaux sociaux.</p>
+        <span class="cluster-count">28 utilisateurs</span>
+      </div>
+      <div class="cluster-block">
+        <div class="cluster-num">CLUSTER 02</div>
+        <h4>Jazz & Ambient</h4>
+        <p>Vinyles, concerts de jazz, écoutes atmosphériques en semaine.</p>
+        <span class="cluster-count">9 utilisateurs</span>
+      </div>
+      <div class="cluster-block">
+        <div class="cluster-num">CLUSTER 03</div>
+        <h4>House & Electronic</h4>
+        <p>Boiler Room, ADE, sets house underground et électronique alternatif.</p>
+        <span class="cluster-count">—</span>
+      </div>
+    </div>
+    <p style="font-family:'Space Mono',monospace; font-size:0.65rem; color:var(--muted); margin-top:16px;">
+      Distorsion : 0.8632 · scipy.cluster.vq.kmeans · Features : 8 scores normalisés (whiten)
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Music Recommender · Hackathon GenAI & ML Bootcamp 2026</p>
+  <p>Python · NumPy · SciPy · Matplotlib · Seaborn</p>
+</footer>
+
+</body>
+</html>
