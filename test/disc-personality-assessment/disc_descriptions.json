@@ -1,0 +1,76 @@
+{
+    "single": {
+        "D": {
+            "title": "### Dominance (D) Personality",
+            "description": "You are a natural leader, driven by results and the desire to make things happen. You're decisive, assertive, and confident in your abilities. You thrive in challenging environments and aren't afraid to take risks or make tough decisions. You prefer action over analysis, and others often look to you when quick, bold choices need to be made. In competitive situations, you excel, finding motivation in achieving the highest goals. Your energy is directed towards getting results, and you are likely to push both yourself and those around you to perform at their best. Though your direct approach may sometimes come across as demanding, your focus on the big picture often enables you to see opportunities where others might see obstacles.",
+            "strengths": "Decisive, results-oriented, problem-solver, self-motivated, risk-taker, visionary.",
+            "challenges": "Can be seen as demanding, impatient, or insensitive. You may need to work on listening to others' opinions, fostering collaboration, and balancing your drive with empathy for those who may have a different pace or approach."
+        },
+        "I": {
+            "title": "### Influence (I) Personality",
+            "description": "You're an enthusiastic and optimistic individual with a natural gift for connecting with others. You're persuasive, engaging, and thrive in social settings where you can share ideas and inspire those around you. People are drawn to your energy and warmth, making you a natural at networking and team-building. You see the potential in others and encourage them to pursue their goals. Because you enjoy being around others, you tend to excel in environments where teamwork, collaboration, and creativity are encouraged. However, your love for spontaneity can sometimes cause you to shift focus or lose track of important details. Nevertheless, your ability to rally people behind a cause or an idea is a powerful asset in any team or project.",
+            "strengths": "Persuasive, optimistic, enthusiastic, relationship-builder, excellent communicator, inspiring.",
+            "challenges": "May be seen as overly talkative or easily distracted. You may need to work on focusing on details, following through on commitments, and ensuring that your enthusiasm doesn't overshadow the practical steps needed to achieve your goals."
+        },
+        "S": {
+            "title": "### Steadiness (S) Personality",
+            "description": "You're a reliable and supportive team player who values stability, harmony, and long-lasting relationships. You bring calm and consistency to any situation, offering patience and understanding to those around you. You tend to shy away from conflict, preferring environments where cooperation and peace are prioritized. Your loyalty to friends, family, and colleagues is unwavering, and you excel in roles where you can help others without feeling rushed. You are a great listener, often providing a steadying influence on your team or group. While you may avoid change and unpredictability, when provided with a clear plan, you follow through with determination. You're the type of person who others know they can count on, even in challenging times.",
+            "strengths": "Patient, loyal, supportive, good listener, team-oriented, reliable.",
+            "challenges": "May avoid conflict or change, and may need to work on assertiveness and expressing your own needs. You can sometimes hesitate when quick decisions are required or when dealing with highly competitive environments."
+        },
+        "C": {
+            "title": "### Conscientiousness (C) Personality",
+            "description": "You are detail-oriented and analytical, with a deep focus on accuracy, structure, and precision. You take pride in producing high-quality work and are often the person others turn to when careful analysis or methodical thinking is required. You are thorough in your approach, leaving no stone unturned, which makes you an excellent problem solver in complex situations. Your standards are high, and you hold yourself and others to them. While your focus on getting things 'just right' can be a strength, it may also make you less comfortable with ambiguity or rapid change. Nevertheless, your commitment to excellence ensures that your work is always well thought out and dependable.",
+            "strengths": "Analytical, detail-oriented, organized, conscientious, problem-solver, high standards.",
+            "challenges": "May be seen as overly critical or perfectionistic. You may need to work on adapting to change, letting go of control in collaborative situations, and understanding that not everything requires a perfect solution."
+        },
+        "DI": {
+            "title": "### Dominance (D) + Influence (I) Personality",
+            "description": "You are a charismatic and persuasive leader who thrives in fast-paced environments. You are naturally assertive and enjoy taking charge, while also being enthusiastic and inspiring to those around you. Your confidence allows you to influence others with ease, and you're often at the center of action, driving teams toward ambitious goals. Your optimism and energy are infectious, and people are drawn to your leadership style, especially when the pressure is on. However, you may struggle with details or delegating tasks, preferring to take control of situations yourself. While this combination makes you highly effective in motivating others, it's important to balance your fast-paced drive with consideration for longer-term strategies and plans.",
+            "strengths": "Decisive, confident, visionary, inspirational, persuasive, energetic.",
+            "challenges": "May be perceived as impatient or overly assertive, may struggle with delegating tasks, and can be easily distracted by new opportunities or challenges without fully completing current ones."
+        },
+        "DC": {
+            "title": "### Dominance (D) + Conscientiousness (C) Personality",
+            "description": "You are a strategic and analytical leader who values precision and accuracy. You're driven to succeed and set ambitious goals, but you also prioritize careful planning and thorough execution. This combination of assertiveness and attention to detail allows you to make informed, data-driven decisions. Your ability to think critically and act decisively makes you a formidable force in environments where both logic and leadership are required. However, your high standards can sometimes make you critical of others, especially when they don't meet your expectations. It's important for you to find balance between striving for perfection and allowing others the space to contribute without feeling micromanaged.",
+            "strengths": "Strategic, decisive, analytical, organized, results-oriented, detail-focused.",
+            "challenges": "May be perceived as critical or perfectionistic. You may struggle with delegating tasks or adapting to situations where quick action is needed without the ability to analyze every detail."
+        },
+        "IS": {
+            "title": "### Influence (I) + Steadiness (S) Personality",
+            "description": "You are a warm and supportive team player who fosters collaboration and harmony. You're naturally empathetic and enjoy connecting with others on a personal level. Your combination of sociability and steadiness makes you a trusted friend and colleague, as you are both approachable and reliable. People are drawn to your ability to make them feel valued, and you excel in environments that emphasize teamwork and mutual support. However, your preference for harmony may lead you to avoid conflict or difficult conversations. Learning to assert yourself when necessary will ensure that your voice is heard, even in situations that require tough decisions.",
+            "strengths": "Empathetic, supportive, collaborative, patient, good listener, team-builder.",
+            "challenges": "May avoid conflict, can be overly accommodating, and may struggle with assertiveness, particularly when dealing with more dominant personalities."
+        },
+        "SC": {
+            "title": "### Steadiness (S) + Conscientiousness (C) Personality",
+            "description": "You are a reliable and methodical individual who values accuracy, consistency, and stability. You approach tasks with patience and a strong attention to detail, ensuring that everything is done correctly and thoroughly. Others appreciate your calm and composed demeanor, as you provide a steady hand even in difficult situations. Your organizational skills and methodical approach make you particularly effective in roles that require long-term planning and consistency. However, you may resist change and be reluctant to make quick decisions. It's important to recognize when flexibility and adaptability are needed to move forward, even if it means stepping outside of your comfort zone.",
+            "strengths": "Reliable, consistent, detail-oriented, organized, patient, methodical.",
+            "challenges": "May be resistant to change, can struggle with quick decision-making, and may be perceived as inflexible or overly cautious in fast-moving environments."
+        },
+        "CD": {
+            "title": "### Conscientiousness (C) + Dominance (D) Personality",
+            "description": "You combine a sharp analytical mind with a powerful drive to achieve. You ensure that decisions are backed by logic and data, but once decided, you pursue goals with determination and assertiveness. This blend of traits makes you both a critical thinker and an action-taker, which is a valuable combination in leadership positions. You excel in environments where precision and results are equally important. However, your high standards and attention to detail may sometimes slow down decision-making or make you overly critical of others' work. Learning to balance your need for control with the ability to trust and delegate will enhance your effectiveness as a leader.",
+            "strengths": "Strategic, decisive, analytical, organized, results-oriented, logical.",
+            "challenges": "May be perceived as critical or perfectionistic, can struggle with delegating tasks, and may become overly focused on details, leading to delays in implementation."
+        },
+        "ID": {
+            "title": "### Influence (I) + Dominance (D) Personality",
+            "description": "You possess a unique combination of charisma and decisiveness, making you a dynamic leader in both social and work environments. You are naturally persuasive, and your assertiveness allows you to take charge in situations that require quick thinking and action. Your enthusiasm and energy are contagious, helping you influence others to align with your vision. However, you may occasionally overlook important details or move too quickly, which can lead to missteps. Striking a balance between your sociability and the need to pause for reflection will allow you to make better long-term decisions while still capitalizing on your ability to inspire action in others.",
+            "strengths": "Confident, energetic, inspiring, decisive, persuasive, action-oriented.",
+            "challenges": "May struggle with slowing down or focusing on details, can come across as overly dominant, and may push ahead without thoroughly considering all factors."
+        },
+        "SI": {
+            "title": "### Steadiness (S) + Influence (I) Personality",
+            "description": "You are a compassionate and sociable person who excels at building harmonious relationships. You enjoy working with others in a supportive and collaborative manner, and you strive to maintain balance and stability in your environment. Your combination of empathy and enthusiasm makes you a great team player, as you can connect with people on a personal level while maintaining a steady and calm demeanor. However, you may avoid conflict or challenging situations that require you to assert yourself more forcefully. Developing the ability to stand your ground, even when it feels uncomfortable, will help you become a stronger leader while maintaining your natural warmth and approachability.",
+            "strengths": "Empathetic, sociable, collaborative, supportive, warm, patient.",
+            "challenges": "May avoid conflict, can be overly accommodating or hesitant in making bold decisions, and may need to work on being more assertive in difficult situations."
+        },
+        "CS": {
+            "title": "### Conscientiousness (C) + Steadiness (S) Personality",
+            "description": "You have a unique blend of conscientiousness and steadiness, which makes you a highly dependable and methodical individual. You excel in roles where attention to detail and consistency are required. Your organized and systematic approach ensures that projects are completed with care and precision, and your calm and steady nature provides a sense of stability for those around you. You are not one to rush into decisions and prefer to take your time to analyze the facts before acting. However, this combination can sometimes make you resistant to change or overly cautious when faster action is needed. Learning to adapt to new situations and becoming more comfortable with uncertainty will help you grow.",
+            "strengths": "Detail-oriented, consistent, organized, reliable, patient, methodical.",
+            "challenges": "May be resistant to change or quick decision-making, can be overly cautious or hesitant in uncertain environments, and may need to work on being more flexible when situations require rapid adaptation."
+        }
+    }
+}

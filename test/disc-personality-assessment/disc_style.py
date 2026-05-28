@@ -1,480 +1,703 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
+import matplotlib.pyplot as plt
+import random
 import json
-import io
-from datetime import datetime
+import base64
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from io import StringIO
+import math
 
-# ── Page config ──────────────────────────────────────────────────────────────
+
 st.set_page_config(
-    page_title="DISC Personality Assessment",
-    page_icon="👤",
-    layout="centered",
-    initial_sidebar_state="collapsed",
+    page_title="DISC Personality Assessment :bust_in_silhouette:",
+    layout="wide",
+    page_icon=":bust_in_silhouette:",
 )
 
-# ── Styles ────────────────────────────────────────────────────────────────────
-st.markdown("""
+# Custom CSS to improve app appearance
+st.markdown(
+    """
 <style>
-    .main { background-color: #0e1117; }
-    .disc-title { font-size: 2.4rem; font-weight: 800; text-align: center;
-                  background: linear-gradient(90deg, #e94560, #0f3460, #16c79a, #f5a623);
-                  -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .disc-subtitle { text-align: center; color: #888; font-size: 1rem; margin-bottom: 2rem; }
-    .stProgress > div > div { background: linear-gradient(90deg, #e94560, #f5a623); }
-    .result-card { border-radius: 16px; padding: 1.5rem; margin: 1rem 0;
-                   border-left: 6px solid; }
-    .section-header { font-size: 1.3rem; font-weight: 700; margin-top: 2rem; }
-</style>
-""", unsafe_allow_html=True)
-
-# ── DISC Data ─────────────────────────────────────────────────────────────────
-DISC_COLORS = {"D": "#e94560", "I": "#f5a623", "S": "#16c79a", "C": "#0f3460"}
-DISC_NAMES  = {"D": "Dominance", "I": "Influence", "S": "Steadiness", "C": "Conscientiousness"}
-DISC_EMOJIS = {"D": "🔴", "I": "🟡", "S": "🟢", "C": "🔵"}
-
-DISC_DESCRIPTIONS = {
-    "D": {
-        "title": "Dominant — The Driver",
-        "tagline": "Results-oriented, decisive, direct",
-        "traits": ["Bold and assertive", "Goal-focused", "Competitive", "Direct communicator",
-                   "Thrives under pressure", "Quick decision-maker"],
-        "strengths": "Natural leader who drives results and tackles challenges head-on.",
-        "growth": "May benefit from slowing down to consider others' perspectives and emotions.",
-        "careers": "CEO, Entrepreneur, Sales Director, Military Officer, Lawyer",
-        "famous": "Steve Jobs, Gordon Ramsay, Donald Trump",
-    },
-    "I": {
-        "title": "Influential — The Inspirer",
-        "tagline": "Enthusiastic, optimistic, collaborative",
-        "traits": ["Outgoing and energetic", "Great communicator", "Optimistic", "Creative",
-                   "Team motivator", "Loves social interaction"],
-        "strengths": "Inspires and motivates others; brings energy and enthusiasm to every situation.",
-        "growth": "May benefit from focusing on follow-through and attention to detail.",
-        "careers": "Marketing, PR, Sales, Teacher, Performer, Coach",
-        "famous": "Oprah Winfrey, Will Smith, Richard Branson",
-    },
-    "S": {
-        "title": "Steady — The Supporter",
-        "tagline": "Patient, reliable, supportive",
-        "traits": ["Loyal and dependable", "Great listener", "Patient", "Team player",
-                   "Consistent", "Calm under pressure"],
-        "strengths": "The backbone of any team — reliable, empathetic and incredibly consistent.",
-        "growth": "May benefit from asserting opinions more and embracing change.",
-        "careers": "Nurse, Counselor, HR Manager, Social Worker, Teacher",
-        "famous": "Mother Teresa, Jimmy Carter, Princess Diana",
-    },
-    "C": {
-        "title": "Conscientious — The Analyst",
-        "tagline": "Analytical, accurate, systematic",
-        "traits": ["Detail-oriented", "Logical thinker", "High standards", "Data-driven",
-                   "Organized", "Independent worker"],
-        "strengths": "Produces high-quality, accurate work through careful analysis and planning.",
-        "growth": "May benefit from making decisions faster and being more flexible.",
-        "careers": "Engineer, Accountant, Data Scientist, Researcher, Programmer",
-        "famous": "Bill Gates, Albert Einstein, Warren Buffett",
-    },
-}
-
-COMBO_DESCRIPTIONS = {
-    ("D", "I"): "A powerhouse communicator — drives results while inspiring others.",
-    ("D", "C"): "Analytical leader — results-focused with high standards and precision.",
-    ("D", "S"): "Determined yet empathetic — achieves goals while caring for the team.",
-    ("I", "S"): "Warm influencer — people-oriented, enthusiastic, and supportive.",
-    ("I", "C"): "Creative analyst — combines big ideas with attention to detail.",
-    ("S", "C"): "Reliable specialist — consistent, thorough, and quality-driven.",
-    ("I", "D"): "Charismatic driver — leads with energy and decisive action.",
-    ("C", "D"): "Precise achiever — high standards meets relentless execution.",
-    ("S", "D"): "Steady achiever — calm determination with strong follow-through.",
-    ("S", "I"): "Supportive motivator — brings warmth and enthusiasm to teams.",
-    ("C", "I"): "Thoughtful communicator — depth of thought with engaging delivery.",
-    ("C", "S"): "Careful supporter — methodical, loyal, and consistently excellent.",
-}
-
-# ── Questions ─────────────────────────────────────────────────────────────────
-QUESTIONS = [
-    # D questions
-    {"text": "I take charge in group situations and enjoy leading others.", "dim": "D"},
-    {"text": "I prefer to make quick decisions rather than deliberate for long.", "dim": "D"},
-    {"text": "I am comfortable with conflict and confrontation when necessary.", "dim": "D"},
-    {"text": "I focus more on results than on the process of getting there.", "dim": "D"},
-    {"text": "I enjoy competition and strive to win.", "dim": "D"},
-    # I questions
-    {"text": "I enjoy meeting new people and thrive in social settings.", "dim": "I"},
-    {"text": "I am often the one who lifts the mood and motivates the group.", "dim": "I"},
-    {"text": "I prefer to express ideas verbally rather than in writing.", "dim": "I"},
-    {"text": "I am optimistic and see the positive side in most situations.", "dim": "I"},
-    {"text": "I love brainstorming and generating creative ideas with others.", "dim": "I"},
-    # S questions
-    {"text": "I prefer a stable, predictable environment over constant change.", "dim": "S"},
-    {"text": "I am a great listener and genuinely care about others' feelings.", "dim": "S"},
-    {"text": "I stay calm and patient even in stressful situations.", "dim": "S"},
-    {"text": "I am loyal and committed to my team and relationships.", "dim": "S"},
-    {"text": "I prefer to finish one task completely before starting another.", "dim": "S"},
-    # C questions
-    {"text": "I pay close attention to details and strive for accuracy.", "dim": "C"},
-    {"text": "I research thoroughly before making important decisions.", "dim": "C"},
-    {"text": "I follow rules and procedures carefully.", "dim": "C"},
-    {"text": "I prefer working independently on well-defined tasks.", "dim": "C"},
-    {"text": "I hold myself to very high standards in everything I do.", "dim": "C"},
-]
-
-SCALE_LABELS = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def compute_scores(answers: dict) -> dict[str, float]:
-    totals = {d: 0 for d in "DISC"}
-    counts = {d: 0 for d in "DISC"}
-    for i, q in enumerate(QUESTIONS):
-        if i in answers:
-            totals[q["dim"]] += answers[i]
-            counts[q["dim"]] += 1
-    return {d: (totals[d] / (counts[d] * 4) * 100) if counts[d] else 0 for d in "DISC"}
-
-
-def primary_secondary(scores: dict) -> tuple[str, str]:
-    ranked = sorted(scores, key=scores.get, reverse=True)
-    return ranked[0], ranked[1]
-
-
-def radar_chart(scores: dict) -> plt.Figure:
-    dims   = list(scores.keys())
-    values = [scores[d] for d in dims]
-    values += values[:1]
-
-    angles = np.linspace(0, 2 * np.pi, len(dims), endpoint=False).tolist()
-    angles += angles[:1]
-
-    fig, ax = plt.subplots(figsize=(5, 5), subplot_kw={"polar": True})
-    fig.patch.set_facecolor("#0e1117")
-    ax.set_facecolor("#161b22")
-
-    ax.plot(angles, values, "o-", lw=2, color="#e94560")
-    ax.fill(angles, values, alpha=0.25, color="#e94560")
-
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(
-        [f"{DISC_EMOJIS[d]} {d}" for d in dims],
-        color="white", fontsize=13, fontweight="bold",
-    )
-    ax.set_ylim(0, 100)
-    ax.set_yticks([25, 50, 75, 100])
-    ax.set_yticklabels(["25", "50", "75", "100"], color="#555", fontsize=8)
-    ax.tick_params(colors="white")
-    ax.spines["polar"].set_color("#333")
-    ax.grid(color="#333", linestyle="--", linewidth=0.7)
-
-    return fig
-
-
-def bar_chart(scores: dict) -> plt.Figure:
-    dims   = list(scores.keys())
-    values = [scores[d] for d in dims]
-    colors = [DISC_COLORS[d] for d in dims]
-
-    fig, ax = plt.subplots(figsize=(6, 3))
-    fig.patch.set_facecolor("#0e1117")
-    ax.set_facecolor("#161b22")
-
-    bars = ax.barh(dims, values, color=colors, edgecolor="none", height=0.5)
-    for bar, val in zip(bars, values):
-        ax.text(val + 1, bar.get_y() + bar.get_height() / 2,
-                f"{val:.0f}%", va="center", color="white", fontsize=11, fontweight="bold")
-
-    ax.set_xlim(0, 110)
-    ax.set_xlabel("Score (%)", color="white")
-    ax.tick_params(colors="white", labelsize=13)
-    ax.spines[:].set_color("#333")
-    ax.set_facecolor("#161b22")
-    for label, dim in zip(ax.get_yticklabels(), dims):
-        label.set_color(DISC_COLORS[dim])
-        label.set_fontweight("bold")
-
-    return fig
-
-
-def generate_pdf(name: str, scores: dict, primary: str, secondary: str) -> bytes:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.units import cm
-
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
-                            topMargin=2*cm, bottomMargin=2*cm)
-    styles = getSampleStyleSheet()
-    story  = []
-
-    title_style = ParagraphStyle("title", parent=styles["Title"],
-                                 fontSize=22, textColor=colors.HexColor("#e94560"),
-                                 spaceAfter=6)
-    h2_style = ParagraphStyle("h2", parent=styles["Heading2"],
-                               fontSize=14, textColor=colors.HexColor("#0f3460"))
-    body_style = ParagraphStyle("body", parent=styles["Normal"], fontSize=11, leading=16)
-
-    story.append(Paragraph("DISC Personality Assessment", title_style))
-    story.append(Paragraph(f"Results for: <b>{name}</b>", body_style))
-    story.append(Paragraph(f"Date: {datetime.now().strftime('%B %d, %Y')}", body_style))
-    story.append(Spacer(1, 0.5*cm))
-
-    story.append(Paragraph("Your DISC Scores", h2_style))
-    score_data = [["Dimension", "Name", "Score"]] + \
-                 [[f"{DISC_EMOJIS[d]} {d}", DISC_NAMES[d], f"{scores[d]:.0f}%"] for d in "DISC"]
-    t = Table(score_data, colWidths=[3*cm, 6*cm, 3*cm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f3460")),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
-        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("ALIGN",      (0, 0), (-1, -1), "CENTER"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#f0f0f0"), colors.white]),
-        ("GRID",       (0, 0), (-1, -1), 0.5, colors.grey),
-        ("FONTSIZE",   (0, 0), (-1, -1), 11),
-        ("PADDING",    (0, 0), (-1, -1), 8),
-    ]))
-    story.append(t)
-    story.append(Spacer(1, 0.5*cm))
-
-    desc = DISC_DESCRIPTIONS[primary]
-    story.append(Paragraph(f"Primary Style: {desc['title']}", h2_style))
-    story.append(Paragraph(f"<i>{desc['tagline']}</i>", body_style))
-    story.append(Spacer(1, 0.3*cm))
-    story.append(Paragraph(f"<b>Key Strengths:</b> {desc['strengths']}", body_style))
-    story.append(Paragraph(f"<b>Growth Area:</b> {desc['growth']}", body_style))
-    story.append(Paragraph(f"<b>Traits:</b> {', '.join(desc['traits'])}", body_style))
-    story.append(Paragraph(f"<b>Ideal Careers:</b> {desc['careers']}", body_style))
-    story.append(Paragraph(f"<b>Famous Examples:</b> {desc['famous']}", body_style))
-    story.append(Spacer(1, 0.5*cm))
-
-    combo_key = (primary, secondary)
-    combo_desc = COMBO_DESCRIPTIONS.get(combo_key) or COMBO_DESCRIPTIONS.get((secondary, primary), "")
-    if combo_desc:
-        story.append(Paragraph(f"Combination Style: {primary}/{secondary}", h2_style))
-        story.append(Paragraph(combo_desc, body_style))
-
-    doc.build(story)
-    return buf.getvalue()
-
-
-def generate_json(name: str, scores: dict, primary: str, secondary: str) -> str:
-    data = {
-        "name": name,
-        "date": datetime.now().isoformat(),
-        "scores": {d: round(scores[d], 1) for d in "DISC"},
-        "primary_style": primary,
-        "secondary_style": secondary,
-        "primary_description": DISC_DESCRIPTIONS[primary]["title"],
-        "traits": DISC_DESCRIPTIONS[primary]["traits"],
-        "careers": DISC_DESCRIPTIONS[primary]["careers"],
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
     }
-    return json.dumps(data, indent=2)
+    .stButton>button {
+        background-color: #184b6a;
+        color: white;
+        font-weight: bold;
+    }
+    .stProgress > div > div > div {
+        background-color: #d3d3d3d3;
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
+# App Title with custom styling
+st.markdown(
+    "<h1 style='text-align: center; color: #184b6a;'>DISC Personality Assessment 👤</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='text-align: center; font-style: italic;'>Discover your DISC personality style by answering the questions below.</p>",
+    unsafe_allow_html=True,
+)
 
-# ── App ───────────────────────────────────────────────────────────────────────
-def main():
-    st.markdown('<p class="disc-title">👤 DISC Personality Assessment</p>', unsafe_allow_html=True)
+# Ensure session state variables are initialized
+if "started" not in st.session_state:
+    st.session_state.started = False
+
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+
+if "show_results" not in st.session_state:
+    st.session_state.show_results = False
+
+if "uploaded_file" not in st.session_state:
+    st.session_state.uploaded_file = None
+
+if "raw_score" not in st.session_state:
+    st.session_state.raw_score = {"D": 0, "I": 0, "S": 0, "C": 0}
+
+if "score" not in st.session_state:
+    st.session_state.score = {"D": 0, "I": 0, "S": 0, "C": 0}
+
+# If the user hasn't started the assessment yet
+if not st.session_state.started:
     st.markdown(
-        '<p class="disc-subtitle">Discover your personality style in under 5 minutes</p>',
-        unsafe_allow_html=True,
+        """
+    ### Welcome to the DISC Personality Assessment
+
+    The DISC assessment is a tool that helps you understand your personality traits across four major dimensions: Dominance (D), Influence (I), Steadiness (S), and Conscientiousness (C). By answering a series of questions, you'll discover your personality style and gain insights into how you interact with others.
+
+    #### Instructions:
+    - You will be presented with a series of statements.
+    - For each statement, indicate how much you agree or disagree using the options provided.
+    - A value of **1** completely disagree, **2** somewhat disagree, **3** neutral, **4** somewhat agree, **5** completely agree
+    - Once you complete the assessment, you'll receive your DISC style profile and a detailed breakdown of your results.
+    - Carefully read the descriptions as some of them sound similar but have different meanings.
+
+    Click "Let's Begin" to start the assessment!
+    """
     )
 
-    if "page" not in st.session_state:
-        st.session_state.page = "intro"
+    # Create layout for buttons
+    c1, c2, c3 = st.columns([1, 2, 1])
+
+    # Handle the "Let's Begin" button press
+    if c1.button("Let's Begin"):
+        st.session_state.started = True
+        st.session_state.submitted = False
+        st.rerun()  # Rerun the script to move to the next stage
+
+    # File upload option, which is shown after clicking "Upload Previous Results"
+    if c3.checkbox("Upload Previous Results"):
+        # Display the file uploader when the button is clicked
+        uploaded_file = st.file_uploader(
+            "Upload your previous JSON results", type=["json"]
+        )
+        if uploaded_file is not None:
+            # Read the file as bytes
+            bytes_data = uploaded_file.getvalue()
+
+            # Convert bytes to string and then to a StringIO object
+            stringio = StringIO(bytes_data.decode("utf-8"))
+
+            # Read the JSON content from the string
+            try:
+                # Load the JSON content
+                uploaded_file_content = json.load(stringio)
+                # Assume the uploaded content is the normalized_score
+                st.session_state.normalized_score = uploaded_file_content
+
+                # Set session states to move forward
+                st.session_state.started = True
+                st.session_state.show_results = True
+                st.session_state.submitted = True
+                st.write("File uploaded and processed successfully!")
+                st.rerun()  # Rerun to process the results
+
+            except json.JSONDecodeError as e:
+                st.error(f"Error decoding JSON: {e}")
+
+
+# Updated plot function
+def create_disc_plot(resultant_angle, resultant_magnitude):
+    # Reduce the size of the figure by modifying figsize
+    fig, ax = plt.subplots(
+        figsize=(10, 10), subplot_kw={"projection": "polar"}
+    )  # Reduce size from 10x10 to 6x6
+
+    # The rest of your plotting code remains unchanged
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+    ax.set_ylim(0, 1.01)
+
+    ax.plot(
+        resultant_angle,
+        resultant_magnitude,
+        "o",
+        markersize=24,
+        color="#4CAF50",
+        label="Your DISC Style",
+    )
+
+    categories = ["D", "I", "S", "C"]
+    angles = [7 * np.pi / 4, np.pi / 4, 3 * np.pi / 4, 5 * np.pi / 4]
+    ax.set_xticks(angles)
+    ax.set_xticklabels(categories, fontsize=14, fontweight="bold")
+
+    ax.axvline(x=0, color="gray", linestyle="--", alpha=0.7)
+    ax.axvline(x=np.pi, color="gray", linestyle="--", alpha=0.7)
+
+    ax.axvline(x=np.pi / 2, color="gray", linestyle="--", alpha=0.7)
+    ax.axvline(x=3 * np.pi / 2, color="gray", linestyle="--", alpha=0.7)
+
+    ax.set_yticklabels([])
+
+    ax.grid(True, alpha=0.3)
+    ax.spines["polar"].set_visible(False)
+    ax.set_facecolor("#f0f2f6")
+
+    plt.title("Your DISC Style Profile", fontsize=16, fontweight="bold", pad=20)
+
+    return fig
+
+
+# Function to download JSON data
+def get_json_download_link(normalized_score):
+    json_str = json.dumps(normalized_score, indent=2)
+    b64 = base64.b64encode(json_str.encode()).decode()
+    href = f'<a href="data:application/json;base64,{b64}" download="disc_results.json">Download JSON Results</a>'
+    return href
+
+
+def get_json_download_button(normalized_score):
+    # Convert the normalized score dictionary into a JSON string
+    json_str = json.dumps(normalized_score, indent=2)
+
+    # Create a downloadable button using the JSON data
+    st.download_button(
+        label="Download JSON Results",
+        data=json_str,
+        file_name="disc_results.json",
+        mime="application/json",
+    )
+
+
+# Function to download PDF report
+def get_pdf_download_link(pdf_buffer):
+    # Encode the PDF buffer in base64 for downloading
+    b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
+    href = f'<a href="data:application/pdf;base64,{b64}" download="disc_report.pdf">Download PDF Report</a>'
+    return href
+
+
+def get_pdf_download_button(pdf_buffer):
+    # Encode the PDF buffer in base64
+    b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
+
+    # Convert base64 PDF into a downloadable button
+    st.download_button(
+        label="Download PDF Report",
+        data=pdf_buffer.getvalue(),
+        file_name="disc_report.pdf",
+        mime="application/pdf",
+    )
+
+
+def describe_style(normalized_score, resultant_angle):
+    """
+    Determine the user's DISC style based on the resultant vector (angle and magnitude) on the DISC wheel.
+    Args:
+        normalized_score: Dictionary of normalized scores for D, I, S, C styles.
+        resultant_angle: The resultant angle in radians.
+        resultant_magnitude: The resultant magnitude (how strongly the traits are combined).
+
+    Returns:
+        A string description of the DISC style.
+    """
+
+    # Convert the resultant angle from radians to degrees
+    resultant_degrees = math.degrees(resultant_angle)
+    if resultant_degrees < 0:
+        resultant_degrees += 360  # Convert negative angles to positive
+
+    # Define the angular ranges for main styles and combinations
+    style_ranges = {
+        # D (Dominance)
+        "D": (315, 337.5),
+        "DC": (270, 315),
+        "DI": (337.5, 360),  # Also covers the 0 degree point
+
+        # I (Influence)
+        "I": (45, 67.5),
+        "ID": (0, 45),
+        "IS": (67.5, 90),
+
+        # S (Steadiness)
+        "S": (135, 157.5),
+        "SI": (90, 135),
+        "SC": (157.5, 180),
+
+        # C (Conscientiousness)
+        "C": (225, 247.5),
+        "CS": (180, 225),
+        "CD": (247.5, 270)
+    }
+
+    # Check if all normalized scores are equal (balanced style)
+    if all(score == list(normalized_score.values())[0] for score in normalized_score.values()):
+        st.markdown("### Balanced Style")
+        st.markdown(
+            "Your responses indicate a balanced personality, where you do not show a clear preference for any specific DISC style."
+        )
+        return "Balanced Style"
+
+    # Determine which range the resultant angle falls into
+    for style, (start_angle, end_angle) in style_ranges.items():
+        if start_angle <= resultant_degrees < end_angle or (start_angle == 337.5 and resultant_degrees == 0):
+            # If it's a combination style, look up the combination description
+            description = disc_descriptions["single"][style]
+
+            # Display the result
+            st.markdown(f"{description['title']}\n\n{description['description']}")
+            st.markdown(f"**Strengths:** {description['strengths']}")
+            st.markdown(f"**Challenges:** {description['challenges']}")
+            return f"{description['title']}\n\n{description['description']}\n\nStrengths: {description['strengths']}\n\nChallenges: {description['challenges']}"
+
+    # Default fallback if no match is found
+    st.markdown("### Balanced Style")
+    st.markdown(
+        "Your responses indicate a balanced personality without a clear preference for any specific DISC style."
+    )
+    return "Balanced Style"
+
+
+
+def normalize_scores(scores, questions):
+    max_possible_scores = {style: 0.0 for style in ["D", "I", "S", "C"]}
+    min_possible_scores = {style: 0.0 for style in ["D", "I", "S", "C"]}
+
+    for q in questions:
+        for style in ["D", "I", "S", "C"]:
+            mapping = q["mapping"][style]
+            if mapping >= 0:
+                max_contribution = mapping * 2  # Max when (answer - 3) = +2
+                min_contribution = mapping * (-2)  # Min when (answer - 3) = -2
+            else:
+                max_contribution = mapping * (-2)  # Max when (answer - 3) = -2
+                min_contribution = mapping * 2  # Min when (answer - 3) = +2
+
+            max_possible_scores[style] += max_contribution
+            min_possible_scores[style] += min_contribution
+
+    print(f"Max possible scores: {max_possible_scores}")
+    print(f"Min possible scores: {min_possible_scores}")
+
+    normalized_scores = {}
+    for style in ["D", "I", "S", "C"]:
+        # Ensure the raw score is within the possible range
+        score = max(min(scores[style], max_possible_scores[style]), min_possible_scores[style])
+        score_range = max_possible_scores[style] - min_possible_scores[style]
+        if score_range == 0:
+            normalized_scores[style] = 50.0  # Neutral score if no variation is possible
+        else:
+            normalized_scores[style] = ((score - min_possible_scores[style]) / score_range) * 100
+            # Ensure the normalized score is within 0 to 100
+            normalized_scores[style] = max(0, min(normalized_scores[style], 100))
+    return normalized_scores
+
+
+# Function to create PDF report
+def create_pdf_report(normalized_score, relative_percentages, fig, style_description):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=50, bottomMargin=50)
+    styles = getSampleStyleSheet()
+
+    # Define custom styles for better formatting
+    styles.add(ParagraphStyle(name='Justify', alignment=4, leading=12))
+    styles.add(ParagraphStyle(name='Heading2Center', parent=styles['Heading2'], alignment=1))
+    styles.add(ParagraphStyle(name='BodyTextCenter', parent=styles['BodyText'], alignment=1))
+
+    story = []
+
+    # Title
+    story.append(Paragraph("DISC Personality Assessment Report", styles["Title"]))
+    story.append(Spacer(1, 20))
+
+    # Add Introduction
+    story.append(Paragraph("Thank you for completing the DISC Personality Assessment. This report provides insights into your personality style based on your responses.", styles['Justify']))
+    story.append(Spacer(1, 20))
+
+    # Add DISC Style Breakdown (Absolute Scores)
+    story.append(Paragraph("Your DISC Style Breakdown (Absolute Scores):", styles["Heading2"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("The following scores represent your absolute level in each DISC style on a scale from 0% to 100%. A higher percentage indicates a stronger tendency towards that style.", styles['Justify']))
+    story.append(Spacer(1, 10))
+
+    # Create a table for absolute scores
+    data = [['Style', 'Score (0-100%)']]
+    for style, score in normalized_score.items():
+        data.append([style, f"{score:.2f}%"])
+
+    table = Table(data, hAlign='LEFT', colWidths=[100, 150])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 20))
+
+    # Add DISC Style Breakdown (Relative Percentages)
+    story.append(Paragraph("Your DISC Style Breakdown (Relative Percentages):", styles["Heading2"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("These percentages represent the proportion of each DISC style relative to your overall personality profile. The total sums up to 100%.", styles['Justify']))
+    story.append(Spacer(1, 10))
+
+    # Create a table for relative percentages
+    data = [['Style', 'Relative Percentage']]
+    for style, score in relative_percentages.items():
+        data.append([style, f"{score:.2f}%"])
+
+    table = Table(data, hAlign='LEFT', colWidths=[100, 150])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 20))
+
+    # Explanation about the difference between Absolute Scores and Relative Percentages
+    story.append(Paragraph("Understanding Your Scores:", styles["Heading2"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(
+        "The absolute scores indicate how strongly you exhibit each DISC style on its own, without comparison to other styles. A higher score means you tend to display more behaviors associated with that style.\n\n"
+        "The relative percentages show how each style contributes to your overall personality profile compared to the other styles. These percentages sum up to 100% and help you understand which styles are most dominant in your personality.",
+        styles['Justify']
+    ))
+    story.append(Spacer(1, 100))
+
+    # Add the plot as an image
+    img_buffer = BytesIO()
+    fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight")
+    img_buffer.seek(0)
+    img = Image(img_buffer, width=400, height=400)
+    story.append(Spacer(1, 10))
+    story.append(img)
+    story.append(Spacer(1, 20))
+
+    # Add personalized style description
+    story.append(Paragraph("Your Personalized DISC Style Description:", styles["Heading2"]))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(style_description.replace("###", ""), styles['Justify']))
+    story.append(Spacer(1, 50))
+
+    story.append(PageBreak())
+    # Add explanation about each DISC style
+    story.append(Paragraph("Understanding All DISC Styles:", styles["Heading2"]))
+    story.append(Spacer(1, 10))
+    styles_list = [
+        ('Dominance (D):', 'You tend to be direct, results-oriented, and assertive. You are motivated by challenges and achieving tangible results.'),
+        ('Influence (I):', 'You are typically outgoing, enthusiastic, and optimistic. You enjoy social interactions and persuading others.'),
+        ('Steadiness (S):', 'You are often patient, supportive, and team-oriented. You value cooperation and harmony in relationships.'),
+        ('Conscientiousness (C):', 'You tend to be analytical, precise, and detail-oriented. You focus on accuracy, quality, and expertise.')
+    ]
+    for title, description in styles_list:
+        story.append(Paragraph(f"<b>{title}</b> {description}", styles['Justify']))
+        story.append(Spacer(1, 5))
+    story.append(Spacer(1, 10))
+
+    # Add final remarks
+    story.append(
+        Paragraph(
+            "Remember, everyone has aspects of all four styles, but most people tend to gravitate towards one or two primary styles. "
+            "Your unique combination of styles influences how you communicate, make decisions, and interact with others.",
+            styles['Justify']
+        )
+    )
+    story.append(Spacer(1, 10))
+    story.append(
+        Paragraph(
+            "Use this insight to enhance your personal and professional relationships by recognizing and appreciating different styles in yourself and others.",
+            styles['Justify']
+        )
+    )
+
+    # Build the PDF
+    doc.build(story)
+
+    # Ensure we return the buffer to be used for downloading
+    buffer.seek(0)
+    return buffer
+
+
+# If the user has started the test, proceed with the questions
+if st.session_state.started:
+
+    # Initialize session state variables for the questions
+    if "page_number" not in st.session_state:
+        st.session_state.page_number = 0
+
+    if "score" not in st.session_state:
+        st.session_state.score = {"D": 0, "I": 0, "S": 0, "C": 0}
+
     if "answers" not in st.session_state:
         st.session_state.answers = {}
-    if "name" not in st.session_state:
-        st.session_state.name = ""
 
-    # ── INTRO ─────────────────────────────────────────────────────────────────
-    if st.session_state.page == "intro":
-        col1, col2, col3, col4 = st.columns(4)
-        for col, d in zip([col1, col2, col3, col4], "DISC"):
-            with col:
-                st.markdown(
-                    f"<div style='text-align:center; padding:1rem; border-radius:12px; "
-                    f"background:{DISC_COLORS[d]}22; border:2px solid {DISC_COLORS[d]};'>"
-                    f"<span style='font-size:2rem'>{DISC_EMOJIS[d]}</span><br>"
-                    f"<b style='color:{DISC_COLORS[d]}'>{d}</b><br>"
-                    f"<small style='color:#aaa'>{DISC_NAMES[d]}</small></div>",
-                    unsafe_allow_html=True,
-                )
+    if "show_results" not in st.session_state:
+        st.session_state.show_results = False
 
-        st.markdown("---")
-        st.markdown("### Ready to discover your style?")
-        name = st.text_input("Your name (optional)", placeholder="Enter your name...")
-        st.markdown("You'll answer **20 quick statements** on a 1–5 scale.")
+    if "submitted" not in st.session_state:
+        st.session_state.submitted = False
 
-        if st.button("Start Assessment ▶", use_container_width=True, type="primary"):
-            st.session_state.name = name or "Anonymous"
-            st.session_state.page = "quiz"
-            st.rerun()
+    if "questions" not in st.session_state:
+        questions = json.load(open("questions.json", "r"))
+        random.shuffle(questions)
+        st.session_state.questions = questions[:30]  # Use the first 30 questions
 
-    # ── QUIZ ──────────────────────────────────────────────────────────────────
-    elif st.session_state.page == "quiz":
-        answered = len(st.session_state.answers)
-        progress = answered / len(QUESTIONS)
-        st.progress(progress, text=f"Progress: {answered}/{len(QUESTIONS)} questions")
+    questions_per_page = 1  # Show one question at a time
+    total_questions = len(st.session_state.questions)
+    total_pages = (
+        total_questions + questions_per_page - 1
+    ) // questions_per_page  # Ceiling division
 
-        for i, q in enumerate(QUESTIONS):
-            with st.container():
-                dim   = q["dim"]
-                color = DISC_COLORS[dim]
-                st.markdown(
-                    f"<div style='border-left:4px solid {color}; padding-left:1rem; margin:0.8rem 0;'>"
-                    f"<small style='color:{color}; font-weight:700'>{DISC_EMOJIS[dim]} {DISC_NAMES[dim]}</small><br>"
-                    f"<b>Q{i+1}.</b> {q['text']}</div>",
-                    unsafe_allow_html=True,
-                )
-                val = st.radio(
-                    label=f"q{i}",
-                    options=[1, 2, 3, 4, 5],
-                    format_func=lambda x: SCALE_LABELS[x - 1],
+    # Load DISC descriptions
+    disc_descriptions = json.load(open("disc_descriptions.json", "r"))
+
+    if not st.session_state.show_results:
+        start = st.session_state.page_number * questions_per_page
+        end = start + questions_per_page
+
+        # Calculate progress
+        progress = (st.session_state.page_number) / total_questions
+
+        # Display progress bar outside the form
+        st.progress(progress)
+
+        with st.form(key=f"form_{st.session_state.page_number}"):
+            i = start
+            if i < total_questions:
+                q = st.session_state.questions[i]
+                n = i + 1
+                st.markdown(f"#### {n}) {q['question']}")
+                options = [
+                    "Select an option",
+                    "1 - Completely Disagree",
+                    "2 - somewhat Disagree",
+                    "3 - Neutral",
+                    "4 - somewhat Agree",
+                    "5 - Completely Agree",
+                ]
+                selected_option = st.radio(
+                    "Choose your response",
+                    options=options,
+                    index=0,
                     key=f"radio_{i}",
                     horizontal=True,
-                    label_visibility="collapsed",
                 )
-                st.session_state.answers[i] = val - 1  # 0–4
+                if st.session_state.page_number < total_pages - 1:
+                    submit_button = st.form_submit_button("Next")
+                else:
+                    submit_button = st.form_submit_button("**Show My DISC Style**")
+            else:
+                submit_button = st.form_submit_button("**Show My DISC Style**")
 
-        st.markdown("---")
-        col_back, col_submit = st.columns([1, 3])
-        with col_back:
-            if st.button("← Back", use_container_width=True):
-                st.session_state.page = "intro"
-                st.rerun()
-        with col_submit:
-            if st.button("See My Results 🎯", use_container_width=True, type="primary"):
-                st.session_state.page = "results"
-                st.rerun()
+        if submit_button:
+            if selected_option == "Select an option":
+                st.warning("Please select a response to proceed.")
+            else:
+                # Map the selected option to a score
+                score_mapping = {
+                    "1 - Completely Disagree": 1,
+                    "2 - somewhat Disagree": 2,
+                    "3 - Neutral": 3,
+                    "4 - somewhat Agree": 4,
+                    "5 - Completely Agree": 5,
+                }
+                st.session_state.answers[i] = score_mapping[selected_option]
+                if st.session_state.page_number < total_pages - 1:
+                    st.session_state.page_number += 1
+                    st.rerun()
+                else:
+                    # Set flags to show results and indicate submission
+                    st.session_state.show_results = True
+                    st.session_state.submitted = False  # Ensure this is reset
+                    st.rerun()
+    else:
+        # After the user has completed the assessment or uploaded results
+        if not st.session_state.submitted:
+            # Reset the scores before calculating
+            st.session_state.score = {"D": 0, "I": 0, "S": 0, "C": 0}
+            # Calculate raw scores
+            for i in range(total_questions):
+                q = st.session_state.questions[i]
+                answer = st.session_state.answers[i]
+                for style in ["D", "I", "S", "C"]:
+                    st.session_state.score[style] += q["mapping"][style] * (answer - 3)
+            print(f'Raw score: {st.session_state.score}')
+            st.session_state.raw_score = st.session_state.score.copy()
 
-    # ── RESULTS ───────────────────────────────────────────────────────────────
-    elif st.session_state.page == "results":
-        scores    = compute_scores(st.session_state.answers)
-        primary, secondary = primary_secondary(scores)
-        desc      = DISC_DESCRIPTIONS[primary]
-        name      = st.session_state.name
+            # Normalize the scores
+            normalized_score = normalize_scores(st.session_state.score, st.session_state.questions)
+            print(f'Normalized score: {normalized_score}')
+            st.session_state.normalized_score = normalized_score
+            st.session_state.submitted = True  # Set to True to avoid recalculation
 
-        st.markdown(f"## Hello, **{name}**! Here are your results 🎉")
 
-        # Score cards
+        else:
+            # Check if normalized_score exists in session_state
+            if 'normalized_score' in st.session_state:
+                normalized_score = st.session_state.normalized_score
+            else:
+                # If not, recalculate it from st.session_state.score
+                normalized_score = normalize_scores(st.session_state.score, st.session_state.questions)
+                st.session_state.normalized_score = normalized_score
+
+        print(f'Normalized score: {normalized_score}')
+
+        # Define the categories and their positions
+        categories = ["D", "I", "S", "C"]
+
+        # Angles for the styles
+        angles = [7 * np.pi / 4, np.pi / 4, 3 * np.pi / 4, 5 * np.pi / 4]
+
+        # Prepare the values
+        values = [normalized_score[cat] for cat in categories]
+
+        # Divide Each Normalized Score by 100:
+        scaled_scores = {style: score / 100 for style, score in normalized_score.items()}
+
+        # Compute x and y components of the style vectors
+        x_components = []
+        y_components = []
+        for style in categories:
+            angle = angles[categories.index(style)]
+            magnitude = scaled_scores[style]
+            x_components.append(magnitude * np.cos(angle))
+            y_components.append(magnitude * np.sin(angle))
+
+        # Sum the components
+        total_x = sum(x_components)
+        total_y = sum(y_components)
+
+        # Compute the resultant vector
+        resultant_magnitude = np.sqrt(total_x**2 + total_y**2)
+        resultant_angle = np.arctan2(total_y, total_x)
+
+        print(f"Resultant magnitude: {resultant_magnitude}")
+
+        # Ensure the magnitude does not exceed 1
+        # resultant_magnitude = min(resultant_magnitude, 1.0)
+
+        # Create the updated plot
+        fig = create_disc_plot(resultant_angle, resultant_magnitude)
+
+        # Use Streamlit columns to control the figure width
+        col1, col2, col3 = st.columns(
+            [1, 2, 1]
+        )  # Adjust the middle column width (2/4 of the page width)
+
+        with col2:  # Display the plot in the middle column
+            st.pyplot(fig)
+
+        # Personalized Style Descriptions
+        st.markdown("## Your Personalized DISC Style")
+        style_description = describe_style(normalized_score, resultant_angle)
+
+        # Display normalized scores with progress bars
+
+        ### Here is was using the style usage rather than general style breakdown
+        # st.markdown("## Your DISC Style Breakdown")
+        # st.markdown("### Style Usage Scores (How much you use each style)")
+        # cols = st.columns(4)
+        # for idx, (style, score_value) in enumerate(normalized_score.items()):
+        #     with cols[idx]:
+        #         st.markdown(f"**{style}**")
+        #         # Ensure score_value is within 0 to 100
+        #         score_value = max(0, min(score_value, 100))
+        #         # Adjust the progress bar value to be between 0.0 and 1.0
+        #         st.progress(score_value / 100)
+        #         # Display the score as a percentage
+        #         st.text(f"{score_value:.2f}%")
+
+        total_normalized = sum(normalized_score.values())
+        relative_percentages = {}
+        for style, score in normalized_score.items():
+            if total_normalized == 0:
+                relative_percentages[style] = 0
+            else:
+                relative_percentages[style] = (score / total_normalized) * 100
+
+        st.markdown("## Your DISC Style Breakdown")
+        st.write("Relative Percentages")
         cols = st.columns(4)
-        for col, d in zip(cols, "DISC"):
-            with col:
-                is_primary = d == primary
-                border = f"4px solid {DISC_COLORS[d]}" if is_primary else f"2px solid {DISC_COLORS[d]}44"
-                st.markdown(
-                    f"<div style='text-align:center; padding:1rem; border-radius:12px; "
-                    f"background:{DISC_COLORS[d]}11; border:{border};'>"
-                    f"<span style='font-size:1.8rem'>{DISC_EMOJIS[d]}</span><br>"
-                    f"<b style='color:{DISC_COLORS[d]}; font-size:1.4rem'>{d}</b><br>"
-                    f"<span style='font-size:1.6rem; font-weight:800'>{scores[d]:.0f}%</span><br>"
-                    f"<small style='color:#aaa'>{DISC_NAMES[d]}</small>"
-                    f"{'<br><small style=color:#ffe66d>★ Primary</small>' if is_primary else ''}"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
+        for idx, (style, score_value) in enumerate(relative_percentages.items()):
+            with cols[idx]:
+                st.markdown(f"**{style}**")
+                # Ensure score_value is within 0 to 100
+                score_value = max(0, min(score_value, 100))
+                # Adjust the progress bar value to be between 0.0 and 1.0
+                st.progress(score_value / 100)
+                # Display the score as a percentage
+                st.text(f"{score_value:.2f}%")
 
-        st.markdown("---")
+        # Download options
+        st.markdown("## Download Your Results")
+        col1, col2 = st.columns(2)
+        with col1:
+            get_json_download_button(normalized_score)
+        with col2:
+            pdf_buffer = create_pdf_report(
+                            normalized_score=normalized_score,
+                            relative_percentages=relative_percentages,
+                            fig=fig,
+                            style_description=style_description
+                        )
+            get_pdf_download_button(pdf_buffer)
 
-        # Charts
-        col_radar, col_bar = st.columns(2)
-        with col_radar:
-            st.markdown("#### Radar Profile")
-            st.pyplot(radar_chart(scores), use_container_width=True)
-        with col_bar:
-            st.markdown("#### Score Breakdown")
-            st.pyplot(bar_chart(scores), use_container_width=True)
-
-        st.markdown("---")
-
-        # Primary style card
+        # Explanation about DISC styles
+        st.markdown("""---""")
         st.markdown(
-            f"<div style='border-radius:16px; padding:1.5rem; "
-            f"background:{DISC_COLORS[primary]}15; border-left:6px solid {DISC_COLORS[primary]};'>"
-            f"<h3 style='color:{DISC_COLORS[primary]}'>{DISC_EMOJIS[primary]} {desc['title']}</h3>"
-            f"<i style='color:#aaa'>{desc['tagline']}</i><br><br>"
-            f"<b>Strengths:</b> {desc['strengths']}<br><br>"
-            f"<b>Growth Area:</b> {desc['growth']}</div>",
-            unsafe_allow_html=True,
+            """
+        ### Understanding All DISC Styles
+
+        - **Dominance (D)**: You tend to be direct, results-oriented, and assertive.
+        - **Influence (I)**: You are typically outgoing, enthusiastic, and optimistic.
+        - **Steadiness (S)**: You are often patient, supportive, and team-oriented.
+        - **Conscientiousness (C)**: You tend to be analytical, precise, and detail-oriented.
+
+        Remember, everyone has aspects of all four styles, but most people tend to gravitate towards one or two primary styles.
+        Your unique combination of styles influences how you communicate, make decisions, and interact with others.
+        """
         )
 
-        # Traits
-        st.markdown("#### Key Traits")
-        trait_cols = st.columns(3)
-        for i, trait in enumerate(desc["traits"]):
-            with trait_cols[i % 3]:
-                st.markdown(
-                    f"<div style='background:{DISC_COLORS[primary]}22; border-radius:8px; "
-                    f"padding:0.5rem 1rem; margin:0.3rem 0; text-align:center; "
-                    f"color:{DISC_COLORS[primary]}; font-weight:600'>{trait}</div>",
-                    unsafe_allow_html=True,
-                )
-
-        # Combo style
-        combo_key  = (primary, secondary)
-        combo_desc = COMBO_DESCRIPTIONS.get(combo_key) or COMBO_DESCRIPTIONS.get((secondary, primary), "")
-        if combo_desc:
-            st.markdown(f"#### Combination Style: {DISC_EMOJIS[primary]}{DISC_EMOJIS[secondary]} {primary}/{secondary}")
-            st.info(combo_desc)
-
-        # Careers & famous
-        col_c, col_f = st.columns(2)
-        with col_c:
-            st.markdown("#### Ideal Careers")
-            for career in desc["careers"].split(", "):
-                st.markdown(f"- {career}")
-        with col_f:
-            st.markdown("#### Famous Examples")
-            for person in desc["famous"].split(", "):
-                st.markdown(f"- {person}")
-
-        st.markdown("---")
-
-        # Secondary style
-        st.markdown(f"#### Secondary Style: {DISC_EMOJIS[secondary]} {secondary} — {DISC_NAMES[secondary]}")
-        st.markdown(
-            f"<div style='border-radius:12px; padding:1rem; "
-            f"background:{DISC_COLORS[secondary]}11; border:2px solid {DISC_COLORS[secondary]}44;'>"
-            f"{DISC_DESCRIPTIONS[secondary]['strengths']}</div>",
-            unsafe_allow_html=True,
-        )
-
-        st.markdown("---")
-
-        # Exports
-        st.markdown("### Download Your Results")
-        col_pdf, col_json, col_retry = st.columns(3)
-
-        with col_pdf:
-            try:
-                pdf_bytes = generate_pdf(name, scores, primary, secondary)
-                st.download_button(
-                    label="📄 Download PDF",
-                    data=pdf_bytes,
-                    file_name=f"DISC_{name.replace(' ', '_')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-            except Exception:
-                st.warning("Install reportlab for PDF export.")
-
-        with col_json:
-            json_str = generate_json(name, scores, primary, secondary)
-            st.download_button(
-                label="📦 Download JSON",
-                data=json_str,
-                file_name=f"DISC_{name.replace(' ', '_')}.json",
-                mime="application/json",
-                use_container_width=True,
-            )
-
-        with col_retry:
-            if st.button("🔄 Retake Assessment", use_container_width=True):
-                st.session_state.page    = "intro"
-                st.session_state.answers = {}
-                st.session_state.name    = ""
-                st.rerun()
+        if st.button("Restart"):
+            st.session_state.pop("page_number")
+            st.session_state.pop("score")
+            st.session_state.pop("answers")
+            st.session_state.pop("show_results")
+            st.session_state.pop("questions")
+            st.rerun()
 
 
-if __name__ == "__main__":
-    main()
+st.markdown(
+    """
+    ---
+    <div style="text-align: center;">
+        <strong><a href="https://github.com/dzyla/disc-personality-assessment">Source code</a></strong> | Developed by <a href="https://dzyla.com">Dawid Zyla</a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
